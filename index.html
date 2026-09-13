@@ -213,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
 
     let isBarMode = true;
+    let typingTimer = null; // 保存打字定时器ID，用来清除旧动画
 
     // ========== 图1：分组并列柱状 ==========
     function drawBar() {
@@ -427,13 +428,18 @@ document.addEventListener('DOMContentLoaded', function () {
 旺季以外地长途游客为主，适合推出“门票+文创+素斋”打包套餐，提升客单价。淡季可以面向本地市民推出特惠活动，拉长游览停留时间。`
     };
 
-    // 打字动画函数
+    // 打字动画函数：增加清除旧定时器逻辑
     function typeWrite(element, text, speed = 30) {
+        if(typingTimer !== null){
+            clearInterval(typingTimer);
+            typingTimer = null;
+        }
         element.innerHTML = "";
         let index = 0;
-        const timer = setInterval(()=>{
+        typingTimer = setInterval(()=>{
             if(index >= text.length){
-                clearInterval(timer);
+                clearInterval(typingTimer);
+                typingTimer = null;
                 return;
             }
             element.innerHTML += text.charAt(index);
@@ -444,6 +450,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // 挂载到window全局，给onclick调用！！
     window.getAiData = async function() {
         const dom = document.getElementById('ai-content');
+        // 新点击时直接终止正在跑的打字动画
+        if(typingTimer !== null){
+            clearInterval(typingTimer);
+            typingTimer = null;
+        }
         dom.innerHTML = "AI思考中...";
         await new Promise(resolve=>setTimeout(resolve,600));
         const selectedType = document.getElementById('ai-select').value;
