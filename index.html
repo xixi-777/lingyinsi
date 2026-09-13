@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景点详情页</title>
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft Yahei", sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+
+        /* ========== 1.顶部全屏大图区块 ========== */
+        .banner-full {
+            width: 100%;
+            height: 70vh;
+            overflow: hidden;
+        }
+        .banner-full img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ========== 2.图文简介区块（左图右文字） ========== */
+        .info-wrap {
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+            display: flex;
+            gap: 30px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .info-left {
+            width: 320px;
+            flex-shrink: 0;
+        }
+        .info-left img {
+            width: 100%;
+            border-radius: 6px;
+        }
+        .info-right {
+            flex: 1;
+        }
+        .info-right h2 {
+            font-size: 26px;
+            margin-bottom: 15px;
+        }
+        .info-right p {
+            font-size: 16px;
+            color: #444;
+        }
+
+        /* ========== 3.ECharts可视化区域 ========== */
+        .chart-wrap {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .chart-item {
+            width: 100%;
+            height: 420px;
+            margin-bottom: 40px;
+            border: 1px solid #eee;
+        }
+        /* AI分析文本框 */
+        .ai-text {
+            width: 100%;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+
+        /* ========== 4.底部返回首页按钮 ========== */
+        .back-home-box {
+            text-align: center;
+            padding: 60px 0;
+        }
+        .back-home {
+            padding: 14px 40px;
+            background: #2266cc;
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===================== 区域1：全屏通栏大图【必须左右铺满窗口】 ===================== -->
+<section class="banner-full">
+    <!-- 替换你的景点全景大头照 -->
+    <img src="img/lingyinsi1.jpg" alt="景点全景大图">
+</section>
+
+<!-- ===================== 区域2：左侧小图 + 右侧名称简介 ===================== -->
+<section class="info-wrap">
+    <div class="info-left">
+        <!-- 景点缩略小图 替换素材 -->
+        <img src="img/lingyisi2.jpg" alt="景点缩略图">
+    </div>
+    <div class="info-right">
+        <h2>灵隐寺</h2>
+        <p>
+灵隐寺，又名云林禅寺，是杭州最早的名刹，距今已有约一千七百年的历史。它不仅是香火鼎盛的祈福圣地，更是一部承载着千年文脉的立体禅史，千年古刹，仙灵所隐。<br>
+灵隐寺始建于东晋咸和元年（公元326年），由印度高僧慧理创建。他看到此地山峰奇秀，感叹道：“此乃中天竺国灵鹫山一小岭，不知何代飞来？佛在世日，多为仙灵所隐。”于是便在此建寺，取名“灵隐”，意为“仙灵所隐”之地。<br>
+千百年来，灵隐寺屡毁屡建，历经14次兴废，但法脉从未断绝。从唐代诗人白居易的“东南山水，余杭郡为最”到宋代大文豪苏东坡的“最爱灵隐飞来孤”，无数文人墨客在此留下足迹与诗篇，为其增添了深厚的文化底蕴。
+        </p>
+    </div>
+</section>
+
+<!-- ===================== 区域3：ECharts三张图表 + AI分析 ===================== -->
+<section class="chart-wrap">
+    <h3 style="margin-bottom:20px;">景区数据可视化分析</h3>
+
+    <!-- 图表1：12个月月度客流折线图 容器 -->
+    <div id="chart-line" class="chart-item"></div>
+
+    <!-- 图表2：客源结构饼图 容器 -->
+    <div id="chart-pie" class="chart-item"></div>
+
+    <!-- 图表3：游客评分柱状图 容器 -->
+    <div id="chart-bar" class="chart-item"></div>
+
+    <!-- AI智能分析文案区域（JS调用AI接口回填内容） -->
+    <div class="ai-text">
+        <h4>AI数据智能研判：</h4>
+        <!-- AI分析视角下拉选择框 -->
+        <select id="ai-select" style="padding:6px;margin-bottom:10px;border-radius:4px;border:1px solid #ccc;">
+            <option value="all">综合全景分析</option>
+            <option value="flow">客流时间分析</option>
+            <option value="consume">消费结构分析</option>
+            <option value="relation">客流消费相关性分析</option>
+        </select>
+        <div id="ai-content" style="white-space:pre-line;">AI分析结果加载区域</div>
+        <button onclick="getAiData()" style="padding:6px 12px;cursor:pointer;border:none;background:#94a388;color:#fff;border-radius:4px;margin-top:8px;">点击生成智能分析</button>
+    </div>
+</section>
+
+<!-- ===================== 区域4：页面最底部 返回首页按钮 ===================== -->
+<section class="back-home-box">
+    <a href="index.html" class="back-home">返回项目首页地图</a>
+</section>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var myChart1 = echarts.init(document.getElementById('chart-line'));
+    var myChart2 = echarts.init(document.getElementById('chart-pie'));
+    var myChart3 = echarts.init(document.getElementById('chart-bar'));
+
+    // ========== 灵隐寺 仿真数据 ==========
+    const scenicTitle = "灵隐寺景区";
+    // 1~12月 工作日客流、节假日客流（单位：万人次）
+    const workDayFlow = [9,10,13,14,12,11,12,13,15,14,11,10];
+    const holidayFlow = [18,22,36,29,24,16,21,28,32,41,23,27];
+    const xData = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+    // 旭日图：游客消费分层数据
+    const sunburstData = [
+        {
+            name: "全部游客",
+            value: 400,
+            children: [
+                {
+                    name: "产生消费",
+                    value:260,
+                    children:[
+                        {name:"门票",value:95},
+                        {name:"香烛",value:70},
+                        {name:"文创",value:45},
+                        {name:"素餐",value:50}
+                    ]
+                },
+                {
+                    name:"无额外消费",
+                    value:140
+                }
+            ]
+        }
+    ];
+
+    // 气泡图数据：[月份索引,总客流,人均消费,平均停留时长]
+    const bubbleData = [
+        [0, 27, 62, 1.6],
+        [1, 32, 65, 1.7],
+        [2, 49, 78, 2.2],
+        [3, 43, 72, 2.0],
+        [4, 36, 68, 1.8],
+        [5, 27, 58, 1.4],
+        [6, 33, 61, 1.5],
+        [7, 41, 70, 1.9],
+        [8, 47, 76, 2.1],
+        [9, 55, 83, 2.4],
+        [10, 34, 66, 1.7],
+        [11, 37, 71, 1.8]
+    ];
+
+    let isBarMode = true;
+
+    // ========== 图1：分组并列柱状 ==========
+    function drawBar() {
+        const opt = {
+            animation: true,
+            animationDuration: 700,
+            title: {
+                text: `${scenicTitle}月度客流：工作日 VS 节假日`,
+                left: 'center',
+                textStyle: {fontSize: 18, fontWeight: 'normal'}
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'rgba(255,255,255,0.92)',
+                textStyle: {color: '#333'},
+                padding: 12,
+                axisPointer: {type: 'shadow'}
+            },
+            legend: {show:true, top:30},
+            grid: {left: '5%', right: '5%', bottom: '12%'},
+            xAxis: {
+                type: 'category',
+                data: xData,
+                axisLine: {lineStyle: {color: '#ccc'}},
+                axisLabel: {fontSize: 13}
+            },
+            yAxis: {
+                type: 'value',
+                name: '接待人次(万)',
+                splitLine: {lineStyle: {type: 'dashed', color: '#eee'}}
+            },
+            series: [
+                {
+                    name:'工作日客流',
+                    type:'bar',
+                    data:workDayFlow,
+                    barWidth: '35%',
+                    barGap: '20%',
+                    itemStyle:{
+                        color: new echarts.graphic.LinearGradient(0,0,0,1,[
+                            {offset:0,color:'#6366f1'},
+                            {offset:1,color:'#a5b4fc'}
+                        ])
+                    }
+                },
+                {
+                    name:'节假日客流',
+                    type:'bar',
+                    data:holidayFlow,
+                    barWidth: '35%',
+                    itemStyle:{
+                        color: new echarts.graphic.LinearGradient(0,0,0,1,[
+                            {offset:0,color:'#f97316'},
+                            {offset:1,color:'#fdba74'}
+                        ])
+                    }
+                }
+            ]
+        };
+        myChart1.setOption(opt);
+        isBarMode = true;
+    }
+
+    // ========== 图1切换：双折线图 ==========
+    function drawLine() {
+        const opt = {
+            animation: true,
+            animationDuration: 700,
+            title: {
+                text: `${scenicTitle}月度客流：工作日 VS 节假日`,
+                left: 'center',
+                textStyle: {fontSize: 18, fontWeight: 'normal'}
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'rgba(255,255,255,0.92)',
+                textStyle: {color: '#333'},
+                padding: 12
+            },
+            legend: {show:true, top:30},
+            grid: {left: '5%', right: '5%', bottom: '12%'},
+            xAxis: {
+                type: 'category',
+                data: xData,
+                axisLine: {lineStyle: {color: '#ccc'}},
+                axisLabel: {fontSize: 13}
+            },
+            yAxis: {
+                type: 'value',
+                name: '接待人次(万)',
+                splitLine: {lineStyle: {type: 'dashed', color: '#eee'}}
+            },
+            series: [
+                {
+                    name:'工作日客流',
+                    type:'line',
+                    smooth:true,
+                    data:workDayFlow,
+                    symbol: 'circle',
+                    symbolSize:7,
+                    itemStyle:{color:'#6366f1'}
+                },
+                {
+                    name:'节假日客流',
+                    type:'line',
+                    smooth:true,
+                    data:holidayFlow,
+                    symbol: 'circle',
+                    symbolSize:7,
+                    itemStyle:{color:'#f97316'}
+                }
+            ]
+        };
+        myChart1.setOption(opt);
+        isBarMode = false;
+    }
+
+    drawBar();
+    const chartDom1 = document.getElementById('chart-line');
+    chartDom1.addEventListener('mouseenter', function() {
+        if(isBarMode) drawLine();
+    });
+    chartDom1.addEventListener('mouseleave', function() {
+        if(!isBarMode) drawBar();
+    });
+
+    // ========== 图2：旭日图 Sunburst 消费结构 ==========
+    const option2 = {
+        title: {
+            text: `${scenicTitle}游客消费分层结构`,
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c}万人'
+        },
+        series: [
+            {
+                type: 'sunburst',
+                data: sunburstData,
+                radius: ['15%', '80%'],
+                sort: 'desc',
+                emphasis: {
+                    focus: 'ancestor'
+                },
+                label: {
+                    show: true,
+                    fontSize:12
+                }
+            }
+        ]
+    };
+    myChart2.setOption(option2);
+
+    // ========== 图3：气泡图 ==========
+    const option3 = {
+        title: {
+            text: `${scenicTitle}客流、人均消费与停留时长`,
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params){
+                return `${xData[params.data[0]]}<br/>总客流：${params.data[1]}万<br/>人均消费：${params.data[2]}元<br/>平均停留：${params.data[3]}h`;
+            }
+        },
+        grid: {left: '5%', right: '5%', bottom: '12%'},
+        xAxis: {
+            type: 'category',
+            data:xData,
+            axisLabel:{fontSize:12}
+        },
+        yAxis: {
+            type: 'value',
+            name:'总客流（万）',
+            splitLine:{lineStyle:{type:'dashed',color:'#eee'}}
+        },
+        series: [
+            {
+                type: 'scatter',
+                data: bubbleData,
+                symbolSize: function(val){
+                    return val[3] * 25; // 停留时长映射气泡大小
+                },
+                itemStyle:{
+                    opacity:0.7,
+                    color:'#10b981'
+                }
+            }
+        ]
+    };
+    myChart3.setOption(option3);
+
+    // ===================== AI分析模块 灵隐寺专用 =====================
+    const aiTextMap = {
+        all: `【综合全景分析】
+灵隐寺景区客流受节假日影响非常明显，10月国庆节假日客流达到全年峰值，3月春季踏青为次高峰；6月梅雨季节客流有所回落。工作日客流整体平稳，波动幅度小。
+消费结构上，约65%游客会产生额外消费，门票占比最高，其次为香烛消费；素餐、文创产品消费潜力还有提升空间。约35%游客仅参观，无额外消费。
+气泡图数据表明，客流高峰月份游客人均消费更高、停留时间更长；淡季游客停留时间短，消费意愿偏低。
+综合建议：节假日重点做好人流管控；旺季推广文创、素餐组合产品；策划淡季主题活动，吸引本地游客到访。`,
+    
+        flow: `【客流时间维度分析】
+灵隐寺客流季节性差异明显，节假日客流远高于工作日。10月国庆客流最高，3月春游形成次高峰；6月梅雨天气会抑制游客到访。工作日客流常年稳定，起伏不大。
+建议节假日增加安保与人员疏导；淡季推出祈福主题活动、本地优惠票，拉动淡季客流，平衡全年接待压力。`,
+    
+        consume: `【游客消费结构分析】
+65%的游客除门票外还有其他消费项目。其中香烛是灵隐寺特色消费；素餐与文创产品消费占比较低，提升空间较大。
+35%游客以参观打卡为主，没有额外消费。可以开发轻量化、低成本文创纪念品，针对这类游客挖掘消费潜力；优化素餐套餐，丰富餐饮品类。`,
+    
+        relation: `【客流与消费相关性分析】
+气泡图可以看出，3月、9月、10月这类客流高峰月份，游客人均消费更高，停留时长更长。淡季游客大多是短途本地访客，停留时间短，消费意愿弱。
+旺季以外地长途游客为主，适合推出“门票+文创+素斋”打包套餐，提升客单价。淡季可以面向本地市民推出特惠活动，拉长游览停留时间。`
+    };
+
+    // 打字动画函数
+    function typeWrite(element, text, speed = 30) {
+        element.innerHTML = "";
+        let index = 0;
+        const timer = setInterval(()=>{
+            if(index >= text.length){
+                clearInterval(timer);
+                return;
+            }
+            element.innerHTML += text.charAt(index);
+            index++;
+        }, speed);
+    }
+
+    // 挂载到window全局，给onclick调用！！
+    window.getAiData = async function() {
+        const dom = document.getElementById('ai-content');
+        dom.innerHTML = "AI思考中...";
+        await new Promise(resolve=>setTimeout(resolve,600));
+        const selectedType = document.getElementById('ai-select').value;
+        const text = aiTextMap[selectedType];
+        typeWrite(dom, text);
+    }
+
+    // 窗口自适应
+    window.addEventListener('resize', function() {
+        myChart1.resize();
+        myChart2.resize();
+        myChart3.resize();
+    })
+});
+</script>
+
+</body>
+</html>
